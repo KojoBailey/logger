@@ -7,7 +7,7 @@
 
 namespace kojo {
 
-class log {
+class logger {
 public:
     template<typename... Args>
     void info(Args&&... args) const {

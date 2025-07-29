@@ -28,6 +28,7 @@ public:
         version,
         null_pointer,
         type_mismatch,
+        bad_value,
     };
 
     bool show_debug{false};

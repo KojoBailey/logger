@@ -2,41 +2,16 @@
 #define KOJO_LOG_LIB
 
 #include <iostream>
+#include <filesystem>
 #include <format>
+#include <regex>
+#include <source_location>
 #include <string_view>
 
 namespace kojo {
 
 class logger {
 public:
-    logger(std::string_view owner_name) : OWNER(owner_name) {}
-
-    void show_debug(bool input) {
-        m_show_debug = input;
-    }
-    void show_info(bool input) {
-        m_show_info = input;
-    }
-    void show_verbose(bool input) {
-        m_show_verbose = input;
-    }
-    void show_warn(bool input) {
-        m_show_warn = input;
-    }
-    void show_error(bool input) {
-        m_show_error = input;
-    }
-    void show_fatal(bool input) {
-        m_show_fatal = input;
-    }
-
-    template<typename... Args>
-    inline void info(Args&&... args) const {
-        if constexpr (true)
-            send(level::info, std::forward<Args>(args)...);
-    }
-
-private:
     enum class level {
         debug,      // Intended for debugging purposes only.
         info,       // Standard log.
@@ -46,23 +21,117 @@ private:
         fatal,      // A program-terminating error.
     };
 
+    enum class status {
+        ok = 0,
+        null_file,
+        file_magic,
+        version,
+        null_pointer,
+    };
+
+    bool show_debug{false};
+    bool show_info{true};
+    bool show_verbose{false};
+    bool show_warn{true};
+    bool show_error{true};
+    bool show_fatal{true};
+
+    logger(std::string_view owner_name) : OWNER(owner_name) {}
+
+    template<typename... Args>
+    inline void debug(std::string_view msg, const std::source_location& loc = std::source_location::current()) {
+        if (!show_debug) return;
+        src = get_src_info(loc);
+        std::cout << std::format("\033[{}m> [{}; {}] [{}] {}\033[0m\n",
+            level_color(level::debug),
+            OWNER,
+            src,
+            level_string(level::debug),
+            msg
+        );
+    }
+    template<typename... Args>
+    inline void info(std::string_view msg, const std::source_location& loc = std::source_location::current()) {
+        if (!show_info) return;
+        src = get_src_info(loc);
+        std::cout << std::format("\033[{}m> [{}; {}] [{}] {}\033[0m\n",
+            level_color(level::info),
+            OWNER,
+            src,
+            level_string(level::info),
+            msg
+        );
+    }
+    template<typename... Args>
+    inline void verbose(std::format_string<Args...> fmt, Args&&... args, const std::source_location& loc = std::source_location::current()) {
+        if (show_verbose) {
+            src = get_src_info(loc);
+            send(level::verbose, fmt, std::forward<Args>(args)...);
+        }
+    }
+
+    template<typename... Args>
+    inline void warn(
+        status _status, 
+        std::string_view details, 
+        std::string_view suggestion, 
+        const std::source_location& loc = std::source_location::current()
+    ) {
+        if (!show_warn) return;
+        src = get_src_info(loc);
+        std::string msg = std::format("code {:03}: {}\n\t{}\n\t{}", (int)_status, status_string(_status), details, suggestion);
+        std::cout << std::format("\033[{}m> [{}; {}] [{}] {}\033[0m\n",
+            level_color(level::warn),
+            OWNER,
+            src,
+            level_string(level::warn),
+            msg
+        );
+    }
+    template<typename... Args>
+    inline void error(
+        status _status, 
+        std::string_view details, 
+        std::string_view suggestion, 
+        const std::source_location& loc = std::source_location::current()
+    ) {
+        if (!show_error) return;
+        src = get_src_info(loc);
+        std::string msg = std::format("code {:03}: {}\n\t{}\n\t{}", (int)_status, status_string(_status), details, suggestion);
+        std::cout << std::format("\033[{}m> [{}; {}] [{}] {}\033[0m\n",
+            level_color(level::error),
+            OWNER,
+            src,
+            level_string(level::error),
+            msg
+        );
+    }
+    template<typename... Args>
+    inline void fatal(std::format_string<Args...> fmt, Args&&... args, const std::source_location& loc = std::source_location::current()) {
+        if (show_fatal) {
+            src = get_src_info(loc);
+            send(level::fatal, fmt, std::forward<Args>(args)...);
+        }
+    }
+
+private:
     level current_lvl;
 
-    bool m_show_debug{false};
-    bool m_show_info{false};
-    bool m_show_verbose{false};
-    bool m_show_warn{false};
-    bool m_show_error{false};
-    bool m_show_fatal{false};
+    std::string src;
 
     const std::string_view OWNER;
-    const std::string_view LOG_FMT = "\033[{}m> [{}] {}\033[0m";
+
+    static constexpr std::string_view LOG_FMT = "\033[{}m> [{}; {}] {}\033[0m";
 
     template<typename T>
     void print(T&& content) {
         std::string output;
         output = std::regex_replace(content, std::regex("\\[0m"), std::format("[{}m", level_as_colour()));
-        std::cout << std::format(LOG_FMT, level_as_colour(), level_as_str(), output) << std::endl;
+        std::cout << std::format(LOG_FMT, level_as_colour(), level_as_str(), src, output) << std::endl;
+    }
+
+    std::string get_src_info(const std::source_location& _src) {
+        return std::format("{}:{}", std::filesystem::path(_src.file_name()).filename().string(), _src.line());
     }
 
     template<typename... Args>
@@ -98,6 +167,40 @@ private:
             case level::fatal:      return "0;31";  // Red
         }
         return "UNKNOWN";
+    }
+
+    constexpr std::string_view level_string(level _level) {
+        switch (_level) {
+            case level::debug:      return "DEBUG";
+            case level::info:       return "INFO";
+            case level::verbose:    return "VERBOSE";
+            case level::warn:       return "WARN";
+            case level::error:      return "ERROR";
+            case level::fatal:      return "FATAL";
+        }
+        return "UNKNOWN";
+    }
+
+    constexpr std::string_view level_color(level _level) {
+        switch (_level) {
+            case level::debug:      return "1;34";  // Light Blue
+            case level::info:       return "0";     // Default
+            case level::verbose:    return "1;34";  // Light Blue
+            case level::warn:       return "1;33";  // Yellow
+            case level::error:      return "1;31";  // Light Red
+            case level::fatal:      return "0;31";  // Red
+        }
+        return "0";
+    }
+
+    constexpr std::string_view status_string(status _status) {
+        switch (_status) {
+            case status::null_file      : return "null file";
+            case status::file_magic     : return "file magic/signature";
+            case status::version        : return "version";
+            case status::null_pointer   : return "null pointer";
+        }
+        return "unknown code";
     }
 };
 

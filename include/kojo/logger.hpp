@@ -30,6 +30,7 @@ public:
         type_mismatch,
         bad_value,
         null_data,
+        missing_field,
     };
 
     bool show_debug{false};

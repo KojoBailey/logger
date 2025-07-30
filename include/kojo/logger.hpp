@@ -31,6 +31,7 @@ public:
         bad_value,
         null_data,
         missing_field,
+        value_mismatch,
     };
 
     bool show_debug{false};

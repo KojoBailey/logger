@@ -29,6 +29,7 @@ public:
         null_pointer,
         type_mismatch,
         bad_value,
+        null_data,
     };
 
     bool show_debug{false};

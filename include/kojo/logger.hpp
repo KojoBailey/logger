@@ -34,14 +34,28 @@ public:
         value_mismatch,
     };
 
-    bool show_debug{false};
-    bool show_info{true};
-    bool show_verbose{false};
-    bool show_warn{true};
-    bool show_error{true};
-    bool show_fatal{true};
+    bool show_debug;
+    bool show_verbose;
+    bool show_info;
+    bool show_warn;
+    bool show_error;
+    bool show_fatal;
 
-    logger(std::string_view owner_name) : owner(owner_name) {}
+    logger(std::string_view owner_name,
+            bool _show_debug = false, 
+            bool _show_verbose = false,
+            bool _show_info = true,
+            bool _show_warn = true,
+            bool _show_error = true,
+            bool _show_fatal = true
+    ) : owner(owner_name),
+        show_debug(_show_debug),
+        show_verbose(_show_verbose),
+        show_info(_show_info),
+        show_warn(_show_warn),
+        show_error(_show_error),
+        show_fatal(_show_fatal)
+    {}
 
     template<typename... Args>
     inline void debug(std::string_view msg, const std::source_location& loc = std::source_location::current()) {

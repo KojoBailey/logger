@@ -129,6 +129,13 @@ public:
         );
     }
 
+    template<typename... Args>
+    std::string get_input(std::format_string<Args...> fmt, Args&&... args) {
+        std::cout << std::format(fmt, std::forward<Args>(args)...);
+        std::string input;
+        std::getline(std::cin, input);
+        return input;
+    }
 private:
     level current_lvl;
 

@@ -69,10 +69,15 @@ public:
     }
     template<typename... Args>
     inline void verbose(std::format_string<Args...> fmt, Args&&... args, const std::source_location& loc = std::source_location::current()) {
-        if (show_verbose) {
-            src = get_src_info(loc);
-            send(level::verbose, fmt, std::forward<Args>(args)...);
-        }
+        if (!show_verbose) return;
+        src = get_src_info(loc);
+        std::cout << std::format("\033[{}m> [{}; {}] [{}] {}\033[0m\n",
+            level_color(level::verbose),
+            owner,
+            src,
+            level_string(level::verbose),
+            msg
+        );
     }
 
     template<typename... Args>

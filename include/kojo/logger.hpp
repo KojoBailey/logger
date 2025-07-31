@@ -240,6 +240,11 @@ private:
             case status::file_magic     : return "file magic/signature";
             case status::version        : return "version";
             case status::null_pointer   : return "null pointer";
+            case status::type_mismatch  : return "type mismatch";
+            case status::bad_value      : return "bad value";
+            case status::null_data      : return "null data";
+            case status::missing_field  : return "missing field";
+            case status::value_mismatch : return "value mismatch";
         }
         return "unknown code";
     }

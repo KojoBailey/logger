@@ -4,7 +4,6 @@
 #include <iostream>
 #include <filesystem>
 #include <format>
-#include <regex>
 #include <source_location>
 #include <string_view>
 
@@ -41,7 +40,7 @@ public:
     bool show_error;
     bool show_fatal;
 
-    logger(std::string_view owner_name,
+    explicit logger(std::string_view owner_name,
             bool _show_debug = false, 
             bool _show_verbose = false,
             bool _show_info = true,
@@ -103,7 +102,7 @@ public:
     ) {
         if (!show_warn) return;
         src = get_src_info(loc);
-        std::string msg = std::format("code {:03}: {}\n\t{}\n\t{}", (int)_status, status_string(_status), details, suggestion);
+        std::string msg = std::format("code {:03}: {}\n\t{}\n\t{}", static_cast<int>(_status), status_string(_status), details, suggestion);
         std::cout << std::format("\033[{}m> [{}; {}] [{}] {}\033[0m\n",
             level_color(level::warn),
             owner,
@@ -121,7 +120,7 @@ public:
     ) {
         if (!show_error) return;
         src = get_src_info(loc);
-        std::string msg = std::format("code {:03}: {}\n\t{}\n\t{}", (int)_status, status_string(_status), details, suggestion);
+        std::string msg = std::format("code {:03}: {}\n\t{}\n\t{}", static_cast<int>(_status), status_string(_status), details, suggestion);
         std::cout << std::format("\033[{}m> [{}; {}] [{}] {}\033[0m\n",
             level_color(level::error),
             owner,
@@ -138,7 +137,7 @@ public:
         const std::source_location& loc = std::source_location::current()
     ) const {
         if (!show_fatal) return;
-        std::string msg = std::format("code {:03}: {}\n\t{}\n\t{}", (int)_status, status_string(_status), details, suggestion);
+        std::string msg = std::format("code {:03}: {}\n\t{}\n\t{}", static_cast<int>(_status), status_string(_status), details, suggestion);
         std::cout << std::format("\033[{}m> [{}; {}] [{}] {}\033[0m\n",
             level_color(level::fatal),
             owner,
@@ -156,61 +155,17 @@ public:
         return input;
     }
 private:
-    level current_lvl;
-
     std::string src;
 
     const std::string_view owner;
 
     static constexpr std::string_view LOG_FMT = "\033[{}m> [{}; {}] {}\033[0m";
 
-    template<typename T>
-    void print(T&& content) {
-        std::string output;
-        output = std::regex_replace(content, std::regex("\\[0m"), std::format("[{}m", level_as_colour()));
-        std::cout << std::format(LOG_FMT, level_as_colour(), level_as_str(), src, output) << std::endl;
-    }
-
-    std::string get_src_info(const std::source_location& _src) const {
+    [[nodiscard]] static std::string get_src_info(const std::source_location& _src) {
         return std::format("{}:{}", std::filesystem::path(_src.file_name()).filename().string(), _src.line());
     }
 
-    template<typename... Args>
-    void send(level lvl, std::format_string<Args...> fmt, Args&&... args) {
-        current_lvl = lvl;
-        print(std::format(fmt, std::forward<Args>(args)...));
-    }
-    template<typename T>
-    void send(level lvl, T&& content) {
-        current_lvl = lvl;
-        print(std::forward<T>(content));
-    }
-
-    constexpr std::string_view level_as_str() const {
-        switch (current_lvl) {
-            case level::debug:      return "DEBUG";
-            case level::info:       return "INFO";
-            case level::verbose:    return "VERBOSE";
-            case level::warn:       return "WARN";
-            case level::error:      return "ERROR";
-            case level::fatal:      return "FATAL";
-        }
-        return "UNKNOWN";
-    }
-
-    constexpr std::string_view level_as_colour() const {
-        switch (current_lvl) {
-            case level::debug:      return "1;34";  // Light Blue
-            case level::info:       return "0";     // Default
-            case level::verbose:    return "1;34";  // Light Blue
-            case level::warn:       return "1;33";  // Yellow
-            case level::error:      return "1;31";  // Light Red
-            case level::fatal:      return "0;31";  // Red
-        }
-        return "UNKNOWN";
-    }
-
-    constexpr std::string_view level_string(level _level) const {
+    [[nodiscard]] static constexpr std::string_view level_string(level _level) {
         switch (_level) {
             case level::debug:      return "DEBUG";
             case level::info:       return "INFO";
@@ -219,10 +174,9 @@ private:
             case level::error:      return "ERROR";
             case level::fatal:      return "FATAL";
         }
-        return "UNKNOWN";
     }
 
-    constexpr std::string_view level_color(level _level) const {
+    [[nodiscard]] static constexpr std::string_view level_color(level _level) {
         switch (_level) {
             case level::debug:      return "1;34";  // Light Blue
             case level::info:       return "0";     // Default
@@ -231,10 +185,9 @@ private:
             case level::error:      return "1;31";  // Light Red
             case level::fatal:      return "0;31";  // Red
         }
-        return "0";
     }
 
-    constexpr std::string_view status_string(status _status) const {
+    [[nodiscard]] static constexpr std::string_view status_string(status _status) {
         switch (_status) {
             case status::null_file      : return "null file";
             case status::file_magic     : return "file magic/signature";
@@ -252,4 +205,4 @@ private:
 
 }
 
-#endif // KOJO_LOG_LIB
+#endif

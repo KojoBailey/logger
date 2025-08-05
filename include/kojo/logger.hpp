@@ -174,6 +174,7 @@ private:
             case level::error:      return "ERROR";
             case level::fatal:      return "FATAL";
         }
+        return "UNKNOWN";
     }
 
     [[nodiscard]] static constexpr std::string_view level_color(level _level) {
@@ -185,6 +186,7 @@ private:
             case level::error:      return "1;31";  // Light Red
             case level::fatal:      return "0;31";  // Red
         }
+        return "0";
     }
 
     [[nodiscard]] static constexpr std::string_view status_string(status _status) {
